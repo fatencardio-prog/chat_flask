@@ -58,6 +58,8 @@
             padding: 8px 12px;
             border-radius: 16px;
             font-size: 14px;
+            word-wrap: break-word;
+            word-break: break-word;
         }
 
         /* tes messages */
@@ -70,6 +72,11 @@
         .message.other .bubble {
             background-color: #f1f0f0;
             color: #000;
+        }
+
+        .bubble a {
+            color: #0645ad;
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -105,6 +112,15 @@
     let pseudo = "";
     let roomCode = "";
 
+    // transforme les URLs en liens cliquables
+    function linkify(text) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g; // simple mais efficace pour http/https [web:268][web:271]
+        return text.replace(urlRegex, (url) => {
+            const escaped = url.replace(/"/g, "&quot;");
+            return '<a href="' + escaped + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
+        });
+    }
+
     socket.on("message", (msg) => {
         const div = document.getElementById("messages");
 
@@ -129,7 +145,7 @@
 
         const bubble = document.createElement("div");
         bubble.classList.add("bubble");
-        bubble.textContent = msg;  // ou `text` si tu veux cacher le pseudo
+        bubble.innerHTML = linkify(msg);  // URLs -> <a> cliquables [web:268][web:271]
 
         wrapper.appendChild(bubble);
         div.appendChild(wrapper);
