@@ -39,7 +39,9 @@ def on_join(data):
 
 @socketio.on("message")
 def handle_message(msg):
+    print("MESSAGE RECU SUR LE SERVEUR:", msg)
     room_name = session.get("room")
+    print("ROOM COURANTE:", room_name)
     if not room_name:
         return
     send(msg, room=room_name)
