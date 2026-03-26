@@ -12,35 +12,43 @@
     <input id="message" autocomplete="off" placeholder="Votre message">
     <button onclick="sendMessage()">Envoyer</button>
 
-    <script>
-        const socket = io();
+<script>
+    const socket = io();
 
-        socket.on("connect", () => {
-            console.log("Connecté au serveur");
-        });
+    let pseudo = "";
 
-        socket.on("message", (msg) => {
-            const div = document.getElementById("messages");
-            const p = document.createElement("p");
-            p.textContent = msg;
-            div.appendChild(p);
-            div.scrollTop = div.scrollHeight;
-        });
+    // Demander un pseudo au chargement
+    window.addEventListener("load", () => {
+        pseudo = prompt("Entrez votre pseudo :") || "Anonyme";
+    });
 
-        function sendMessage() {
-            const input = document.getElementById("message");
-            const msg = input.value.trim();
-            if (msg) {
-                socket.send(msg);
-                input.value = "";
-            }
+    socket.on("connect", () => {
+        console.log("Connecté au serveur");
+    });
+
+    socket.on("message", (msg) => {
+        const div = document.getElementById("messages");
+        const p = document.createElement("p");
+        p.textContent = msg;
+        div.appendChild(p);
+        div.scrollTop = div.scrollHeight;
+    });
+
+    function sendMessage() {
+        const input = document.getElementById("message");
+        const text = input.value.trim();
+        if (text) {
+            const msg = pseudo + " : " + text;
+            socket.send(msg);
+            input.value = "";
         }
+    }
 
-        document.getElementById("message").addEventListener("keyup", (e) => {
-            if (e.key === "Enter") {
-                sendMessage();
-            }
-        });
-    </script>
+    document.getElementById("message").addEventListener("keyup", (e) => {
+        if (e.key === "Enter") {
+            sendMessage();
+        }
+    });
+</script>
 </body>
 </html>
