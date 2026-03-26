@@ -64,51 +64,8 @@
     <button onclick="sendMessage()">Envoyer</button>
 </div>
 
-<script>
-    const socket = io();
-
-    let pseudo = "";
-    let roomCode = "";
-
-    socket.on("message", (msg) => {
-        const div = document.getElementById("messages");
-        const p = document.createElement("p");
-        p.textContent = msg;
-        div.appendChild(p);
-        div.scrollTop = div.scrollHeight;
-    });
-
-    function joinRoom() {
-        pseudo = document.getElementById("pseudo").value.trim() || "Anonyme";
-        roomCode = document.getElementById("room").value.trim();
-
-        if (!roomCode) {
-            alert("Merci de renseigner un code d'accès (salon).");
-            return;
-        }
-
-        socket.emit("join", { pseudo: pseudo, room: roomCode });
-
-        document.getElementById("login").style.display = "none";
-        document.getElementById("chat").style.display = "block";
-        document.getElementById("info").textContent =
-            "Connecté en tant que " + pseudo + " dans le salon (code) : " + roomCode;
-    }
-
-    function sendMessage() {
-        const input = document.getElementById("message");
-        const text = input.value.trim();
-        if (text) {
-            const msg = pseudo + " : " + text;
-            socket.emit("chat_message", {
-                msg: msg,
-                room: roomCode
-            });
-            input.value = "";
-            input.focus();
-        }
-    }
-</script>
-
+<script src="https://cdn.socket.io/4.8.3/socket.io.min.js"
+        integrity="sha384-kzavj5fiMwLKzzD1f8S7TeoVIEi7uKHvbTA3ueZkrzYq75pNQUiUi6Dy98Q3fxb0"
+        crossorigin="anonymous"></script>
 </body>
 </html>
