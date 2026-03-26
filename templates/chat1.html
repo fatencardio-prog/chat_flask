@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Chat en ligne</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h2>Mini chat</h2>
+    <div id="messages" style="border:1px solid #ccc;height:300px;overflow:auto;margin-bottom:10px;"></div>
+
+    <input id="message" autocomplete="off" placeholder="Votre message">
+    <button onclick="sendMessage()">Envoyer</button>
+
+<script>
+    const socket = io();
+
+    let pseudo = "";
+
+    // Demander un pseudo au chargement
+    window.addEventListener("load", () => {
+        pseudo = prompt("Entrez votre pseudo :") || "Anonyme";
+    });
+
+    socket.on("connect", () => {
+        console.log("Connecté au serveur");
+    });
+
+    socket.on("message", (msg) => {
+        const div = document.getElementById("messages");
+        const p = document.createElement("p");
+        p.textContent = msg;
+        div.appendChild(p);
+        div.scrollTop = div.scrollHeight;
+    });
+
+    function sendMessage() {
+        const input = document.getElementById("message");
+        const text = input.value.trim();
+        if (text) {
+            const msg = pseudo + " : " + text;
+            socket.send(msg);
+            input.value = "";
+        }
+    }
+
+    document.getElementById("message").addEventListener("keyup", (e) => {
+        if (e.key === "Enter") {
+            sendMessage();
+        }
+    });
+</script>
+</body>
+</html>

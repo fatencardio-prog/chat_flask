@@ -1,0 +1,15 @@
+En local :
+python app.py
+
+puis va sur http://127.0.0.1:5000
+
+avec render tu tapes ca sur ton terminal ligne par ligne:
+
+git add .
+git commit -m "Testé en local, prêt pour Render"
+git push
+
+
+et tu vas voir sur ton navigateur la mise a jour sur render:
+
+https://dashboard.render.com/web/srv-d72e4b19fqoc73b3ft50

@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Chat privé</title>
+
+    <!-- Socket.IO depuis le CDN officiel, sans integrity -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script> <!-- [web:201][web:203] -->
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+
+        #login, #chat {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        #messages {
+            border: 1px solid #ccc;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding: 5px;
+            background-color: #f9f9f9;
+        }
+
+        #message {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button {
+            margin-top: 5px;
+            padding: 6px 12px;
+        }
+
+        /* bulles de chat */
+        .message {
+            display: flex;
+            margin: 4px 0;
+        }
+
+        .message.me {
+            justify-content: flex-end;
+        }
+
+        .message.other {
+            justify-content: flex-start;
+        }
+
+        .bubble {
+            max-width: 70%;
+            padding: 8px 12px;
+            border-radius: 16px;
+            font-size: 14px;
+        }
+
+        /* tes messages */
+        .message.me .bubble {
+            background-color: #cce5ff;
+            color: #000;
+        }
+
+        /* messages des autres */
+        .message.other .bubble {
+            background-color: #f1f0f0;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+
+<div id="login">
+    <h2>Connexion au salon</h2>
+
+    <label>Pseudo :</label><br>
+    <input type="text" id="pseudo" placeholder="Votre pseudo"><br><br>
+
+    <label>Code d'accès au salon :</label><br>
+    <input type="text" id="room" placeholder="Code du salon"><br><br>
+
+    <button onclick="joinRoom()">Entrer dans le salon</button>
+</div>
+
+<div id="chat" style="display:none;">
+    <div id="info" style="margin-bottom:10px;"></div>
+
+    <div id="messages"></div>
+
+    <textarea id="message" rows="4" placeholder="Votre message (Entrée = nouvelle ligne)"></textarea><br>
+    <button onclick="sendMessage()">Envoyer</button>
+</div>
+
+<!-- Son de notification -->
+<audio id="notif-sound" src="/static/notification.wav"></audio> <!-- [web:223] -->
+
+<script>
+    const socket = io();
+
+    let pseudo = "";
+    let roomCode = "";
+
+    socket.on("message", (msg) => {
+        const div = document.getElementById("messages");
+
+        // déterminer l'auteur du message
+        let author = "";
+        let text = msg;
+
+        const sepIndex = msg.indexOf(" : ");
+        if (sepIndex !== -1) {
+            author = msg.substring(0, sepIndex);
+            text = msg.substring(sepIndex + 3);
+        }
+
+        const wrapper = document.createElement("div");
+        wrapper.classList.add("message");
+
+        if (author && author === pseudo) {
+            wrapper.classList.add("me");
+        } else {
+            wrapper.classList.add("other");
+        }
+
+        const bubble = document.createElement("div");
+        bubble.classList.add("bubble");
+        bubble.textContent = msg;  // ou `text` si tu veux cacher le pseudo
+
+        wrapper.appendChild(bubble);
+        div.appendChild(wrapper);
+        div.scrollTop = div.scrollHeight;
+
+        // jouer le son de notification
+        const audio = document.getElementById("notif-sound");
+        if (audio) {
+            audio.currentTime = 0;
+            audio.play().catch(() => {});
+        }
+    });
+
+    function joinRoom() {
+        pseudo = document.getElementById("pseudo").value.trim() || "Anonyme";
+        roomCode = document.getElementById("room").value.trim();
+
+        if (!roomCode) {
+            alert("Merci de renseigner un code d'accès (salon).");
+            return;
+        }
+
+        socket.emit("join", { pseudo: pseudo, room: roomCode });
+
+        document.getElementById("login").style.display = "none";
+        document.getElementById("chat").style.display = "block";
+        document.getElementById("info").textContent =
+            "Connecté en tant que " + pseudo + " dans le salon (code) : " + roomCode;
+    }
+
+    function sendMessage() {
+        const input = document.getElementById("message");
+        const text = input.value.trim();
+        if (text) {
+            const msg = pseudo + " : " + text;
+            socket.emit("chat_message", {
+                msg: msg,
+                room: roomCode
+            });
+            input.value = "";
+            input.focus();
+        }
+    }
+</script>
+
+</body>
+</html>

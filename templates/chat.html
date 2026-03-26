@@ -121,7 +121,7 @@
         });
     }
 
-    socket.on("message", (msg) => {
+    function addMessageBubble(msg) {
         const div = document.getElementById("messages");
 
         // déterminer l'auteur du message
@@ -145,11 +145,30 @@
 
         const bubble = document.createElement("div");
         bubble.classList.add("bubble");
-        bubble.innerHTML = linkify(msg);  // URLs -> <a> cliquables [web:268][web:271]
+        bubble.innerHTML = linkify(msg);  // URLs -> <a> cliquables
 
         wrapper.appendChild(bubble);
         div.appendChild(wrapper);
         div.scrollTop = div.scrollHeight;
+    }
+
+    // Réception de l'historique à la connexion
+    socket.on("history", (history) => {
+        const div = document.getElementById("messages");
+        div.innerHTML = "";  // on vide avant de remplir
+
+        if (Array.isArray(history)) {
+            history.forEach((item) => {
+                if (item.text) {
+                    addMessageBubble(item.text);
+                }
+            });
+        }
+    });
+
+    // Réception d'un nouveau message
+    socket.on("message", (msg) => {
+        addMessageBubble(msg);
 
         // jouer le son de notification
         const audio = document.getElementById("notif-sound");
