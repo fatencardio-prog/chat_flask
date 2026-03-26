@@ -4,11 +4,16 @@ from flask_session import Session
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "secret!"
-# Session côté serveur pour stocker pseudo/room
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 socketio = SocketIO(app, manage_session=False)
+
+# Salons autorisés : mot de passe -> nom du salon
+ROOMS = {
+    "150659": "tollis",   # ami 1
+    "101263": "louati",   # ami 2
+}
 
 @app.route("/")
 def index():
@@ -17,23 +22,27 @@ def index():
 @socketio.on("join")
 def on_join(data):
     pseudo = data.get("pseudo", "Anonyme")
-    room = data.get("room")
+    password = data.get("room")  # ici on considère que "room" est le mot de passe
 
-    if not room:
+    # Vérifier que le mot de passe correspond à un salon autorisé
+    if not password or password not in ROOMS:
+        # on pourrait envoyer un message d'erreur au client plus tard
         return
 
-    session["pseudo"] = pseudo
-    session["room"] = room
+    room_name = ROOMS[password]
 
-    join_room(room)
-    send(f"{pseudo} a rejoint le salon.", room=room)
+    session["pseudo"] = pseudo
+    session["room"] = room_name
+
+    join_room(room_name)
+    send(f"{pseudo} a rejoint le salon {room_name}.", room=room_name)
 
 @socketio.on("message")
 def handle_message(msg):
-    room = session.get("room")
-    if not room:
+    room_name = session.get("room")
+    if not room_name:
         return
-    send(msg, room=room)
+    send(msg, room=room_name)
 
 # Pour Render / Gunicorn
 if __name__ != "__main__":
