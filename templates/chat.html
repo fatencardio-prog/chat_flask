@@ -1,34 +1,68 @@
 <!doctype html>
-<html>
+<html lang="fr">
 <head>
     <meta charset="utf-8">
     <title>Chat privé</title>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+    <!-- Socket.IO depuis le serveur Flask -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"
+            integrity="sha384-aFfAzlM8ql5zzctT1I3GfZt1Qq1Lrj2H9kU0heYdZ2VN3w9uQ2R5F1vJ9G8f3Zk"
+            crossorigin="anonymous"></script> <!-- [web:115] -->
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+
+        #login, #chat {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        #messages {
+            border: 1px solid #ccc;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding: 5px;
+            background-color: #f9f9f9;
+        }
+
+        #message {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button {
+            margin-top: 5px;
+            padding: 6px 12px;
+        }
+    </style>
 </head>
 <body>
-    <h2>Chat privé</h2>
 
-    <!-- Zone de connexion -->
-    <div id="login">
-        <label>Pseudo :</label>
-        <input id="pseudo" autocomplete="off"><br><br>
+<div id="login">
+    <h2>Connexion au salon</h2>
+    <label>Pseudo :</label><br>
+    <input type="text" id="pseudo" placeholder="Votre pseudo"><br><br>
 
-        <label>Code d'accès (salon) :</label>
-        <input id="room" autocomplete="off" placeholder="ex: amiX ou amiY"><br><br>
+    <label>Code d'accès au salon :</label><br>
+    <input type="text" id="room" placeholder="Ex : 150659"><br><br>
 
-        <button onclick="joinRoom()">Entrer</button>
-    </div>
+    <button onclick="joinRoom()">Entrer dans le salon</button>
+</div>
 
-    <hr>
+<div id="chat" style="display:none;">
+    <div id="info" style="margin-bottom:10px;"></div>
 
-    <!-- Zone de chat -->
-    <div id="chat" style="display:none;">
-        <div id="info"></div>
-        <div id="messages" style="border:1px solid #ccc;height:300px;overflow:auto;margin-bottom:10px;"></div>
+    <div id="messages"></div>
 
-        <input id="message" autocomplete="off" placeholder="Votre message">
-        <button onclick="sendMessage()">Envoyer</button>
-    </div>
+    <textarea id="message" rows="4" placeholder="Votre message (Entrée = nouvelle ligne)"></textarea><br>
+    <button onclick="sendMessage()">Envoyer</button>
+</div>
 
 <script>
     const socket = io();
@@ -71,14 +105,10 @@
                 room: roomCode
             });
             input.value = "";
+            input.focus();
         }
     }
-
-    document.getElementById("message").addEventListener("keyup", (e) => {
-        if (e.key === "Enter") {
-            sendMessage();
-        }
-    });
 </script>
+
 </body>
 </html>
