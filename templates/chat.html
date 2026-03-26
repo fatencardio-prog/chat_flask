@@ -1,136 +1,231 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <title>Chat privé</title>
+
+    <!-- Socket.IO depuis le CDN officiel, sans integrity -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script> <!-- [web:201][web:203] -->
+
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        #chat-container {
             max-width: 600px;
-            margin: 0 auto;
+            margin: 20px auto;
         }
+
+        #login, #chat {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
         #messages {
             border: 1px solid #ccc;
-            padding: 10px;
             height: 300px;
             overflow-y: auto;
             margin-bottom: 10px;
+            padding: 5px;
             background-color: #f9f9f9;
         }
-        #input-area {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        #message-input {
+
+        #message {
             width: 100%;
-            resize: vertical;
+            box-sizing: border-box;
         }
-        #buttons-row {
+
+        button {
+            margin-top: 5px;
+            padding: 6px 12px;
+        }
+
+        /* bulles de chat */
+        .message {
             display: flex;
-            justify-content: space-between;
-            gap: 8px;
+            margin: 4px 0;
         }
-        #send-button {
-            padding: 8px 14px;
-            background-color: #007bff;
+
+        .message.me {
+            justify-content: flex-end;
+        }
+
+        .message.other {
+            justify-content: flex-start;
+        }
+
+        .bubble {
+            max-width: 70%;
+            padding: 8px 12px;
+            border-radius: 16px;
+            font-size: 14px;
+            word-wrap: break-word;
+            word-break: break-word;
+        }
+
+        .message.me .bubble {
+            background-color: #cce5ff;
+            color: #000;
+        }
+
+        .message.other .bubble {
+            background-color: #f1f0f0;
+            color: #000;
+        }
+
+        /* liens dans les messages */
+        .bubble a {
+            color: #0645ad;
+            text-decoration: underline;
+        }
+
+        /* bouton rouge sous Envoyer pour Filemail */
+        #filemail-btn {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 8px 16px;
+            background-color: #dc3545;
             color: white;
             border: none;
             border-radius: 4px;
-            font-weight: bold;
             cursor: pointer;
-        }
-        #send-button:hover {
-            background-color: #0056b3;
-        }
-        #filemail-button {
-            padding: 8px 14px;
-            background-color: red;
-            color: white;
-            border-radius: 4px;
-            text-decoration: none;
-            font-weight: bold;
-            display: inline-block;
-        }
-        #filemail-button:hover {
-            background-color: #b30000;
         }
     </style>
 </head>
 <body>
-<div id="chat-container">
-    <h2>Chat privé</h2>
-    <p>Connecté en tant que {{ username }} dans le salon (code) : {{ room }}</p>
 
-    <div id="messages">
-        <!-- Ici tu affiches éventuellement l'historique -->
-        {% for msg in messages %}
-            <div><strong>{{ msg.user }} :</strong> {{ msg.text }}</div>
-        {% endfor %}
-    </div>
+<div id="login">
+    <h2>Connexion au salon</h2>
 
-    <div id="input-area">
-        <textarea id="message-input"
-                  rows="3"
-                  placeholder="Votre message (Entrée = nouvelle ligne)"></textarea>
+    <label>Pseudo :</label><br>
+    <input type="text" id="pseudo" placeholder="Votre pseudo"><br><br>
 
-        <div id="buttons-row">
-            <!-- Bouton rouge vers Filemail -->
-            <a id="filemail-button"
-               href="https://www.filemail.com/fr"
-               target="_blank"
-               rel="noopener noreferrer">
-                Envoyer un fichier
-            </a>
+    <label>Code d'accès au salon :</label><br>
+    <input type="text" id="room" placeholder="Code du salon"><br><br>
 
-            <!-- Bouton d'envoi du chat -->
-            <button id="send-button">Envoyer</button>
-        </div>
-    </div>
+    <button onclick="joinRoom()">Entrer dans le salon</button>
 </div>
 
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"
-        integrity="sha384-hegB+o5uhkOCoFQpW4uu4utaJKQcdZG2jybZ5FQ7Htd6VFH4++HhmocA6C4O9aQX"
-        crossorigin="anonymous"></script>
+<div id="chat" style="display:none;">
+    <div id="info" style="margin-bottom:10px;"></div>
+
+    <div id="messages"></div>
+
+    <textarea id="message" rows="4" placeholder="Votre message (Entrée = nouvelle ligne)"></textarea><br>
+    <button onclick="sendMessage()">Envoyer</button>
+    <button id="filemail-btn" onclick="openFilemail()">Ouvrir Filemail</button>
+</div>
+
+<!-- Son de notification -->
+<audio id="notif-sound" src="/static/notification.wav"></audio> <!-- [web:223] -->
+
 <script>
     const socket = io();
 
-    const room = "{{ room }}";
-    const username = "{{ username }}";
+    let pseudo = "";
+    let roomCode = "";
 
-    const messagesDiv = document.getElementById('messages');
-    const textarea = document.getElementById('message-input');
-    const sendBtn = document.getElementById('send-button');
+    // regex URL
+    const urlRegex = /(https?:\/\/[^\s]+)/g; // [web:268][web:271]
 
-    // Rejoindre la room
-    socket.emit('join', {room: room, username: username});
+    // transforme les URLs en liens cliquables (bleus)
+    function linkify(text) {
+        return text.replace(urlRegex, (url) => {
+            const escaped = url.replace(/"/g, "&quot;");
+            return '<a href="' + escaped + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
+        });
+    }
 
-    // Réception des messages
-    socket.on('message', function (data) {
-        const div = document.createElement('div');
-        div.innerHTML = '<strong>' + data.user + ' :</strong> ' + data.text;
-        messagesDiv.appendChild(div);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    });
+    function addMessageBubble(msg) {
+        const div = document.getElementById("messages");
 
-    // Envoi du message avec le bouton
-    sendBtn.addEventListener('click', function () {
-        const text = textarea.value.trim();
-        if (!text) return;
-        socket.emit('send_message', {room: room, username: username, text: text});
-        textarea.value = '';
-    });
+        let author = "";
+        let text = msg;
 
-    // Ctrl+Enter pour envoyer, Enter seul = nouvelle ligne
-    textarea.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' && e.ctrlKey) {
-            e.preventDefault();
-            sendBtn.click();
+        const sepIndex = msg.indexOf(" : ");
+        if (sepIndex !== -1) {
+            author = msg.substring(0, sepIndex);
+            text = msg.substring(sepIndex + 3);
+        }
+
+        const wrapper = document.createElement("div");
+        wrapper.classList.add("message");
+
+        if (author && author === pseudo) {
+            wrapper.classList.add("me");
+        } else {
+            wrapper.classList.add("other");
+        }
+
+        const bubble = document.createElement("div");
+        bubble.classList.add("bubble");
+        bubble.innerHTML = linkify(msg);  // URLs -> <a> cliquables
+
+        wrapper.appendChild(bubble);
+        div.appendChild(wrapper);
+        div.scrollTop = div.scrollHeight;
+    }
+
+    // Historique reçu à la connexion
+    socket.on("history", (history) => {
+        const div = document.getElementById("messages");
+        div.innerHTML = "";
+
+        if (Array.isArray(history)) {
+            history.forEach((item) => {
+                if (item.text) {
+                    addMessageBubble(item.text);
+                }
+            });
         }
     });
+
+    // Nouveau message reçu
+    socket.on("message", (msg) => {
+        addMessageBubble(msg);
+
+        const audio = document.getElementById("notif-sound");
+        if (audio) {
+            audio.currentTime = 0;
+            audio.play().catch(() => {});
+        }
+    });
+
+    function joinRoom() {
+        pseudo = document.getElementById("pseudo").value.trim() || "Anonyme";
+        roomCode = document.getElementById("room").value.trim();
+
+        if (!roomCode) {
+            alert("Merci de renseigner un code d'accès (salon).");
+            return;
+        }
+
+        socket.emit("join", { pseudo: pseudo, room: roomCode });
+
+        document.getElementById("login").style.display = "none";
+        document.getElementById("chat").style.display = "block";
+        document.getElementById("info").textContent =
+            "Connecté en tant que " + pseudo + " dans le salon (code) : " + roomCode;
+    }
+
+    function sendMessage() {
+        const input = document.getElementById("message");
+        const text = input.value.trim();
+        if (text) {
+            const msg = pseudo + " : " + text;
+            socket.emit("chat_message", {
+                msg: msg,
+                room: roomCode
+            });
+            input.value = "";
+            input.focus();
+        }
+    }
+
+    // Bouton rouge : ouvre Filemail dans un nouvel onglet
+    function openFilemail() {
+        window.open("https://www.filemail.com/fr", "_blank", "noopener"); // [web:325][web:329]
+    }
 </script>
+
 </body>
 </html>
