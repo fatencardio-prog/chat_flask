@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>Chat privé</title>
 
-    <!-- Socket.IO depuis le CDN officiel, SANS integrity -->
+    <!-- Socket.IO depuis le CDN officiel, sans integrity -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script> <!-- [web:201][web:203] -->
 
     <style>
@@ -38,6 +38,13 @@
             margin-top: 5px;
             padding: 6px 12px;
         }
+
+        #room-image {
+            max-width: 100%;
+            max-height: 200px;
+            display: block;
+            margin: 10px auto;
+        }
     </style>
 </head>
 <body>
@@ -63,6 +70,9 @@
     <button onclick="sendMessage()">Envoyer</button>
 </div>
 
+<!-- Son de notification -->
+<audio id="notif-sound" src="/static/notification.wav"></audio> <!-- [web:223] -->
+
 <script>
     const socket = io();
 
@@ -75,6 +85,13 @@
         p.textContent = msg;
         div.appendChild(p);
         div.scrollTop = div.scrollHeight;
+
+        // jouer le son de notification
+        const audio = document.getElementById("notif-sound");
+        if (audio) {
+            audio.currentTime = 0;
+            audio.play().catch(() => {});
+        }
     });
 
     function joinRoom() {
