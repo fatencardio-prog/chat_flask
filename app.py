@@ -6,10 +6,10 @@ app.config["SECRET_KEY"] = "secret!"
 
 socketio = SocketIO(app)
 
-# Salons autorisés : mot de passe -> nom du salon
+# Salons autorisés : code (tel que tapé) -> même nom
 ROOMS = {
-    "150659": "tollis",   # ami 1
-    "101263": "louati",   # ami 2
+    "150659": "150659",   # ami 1
+    "101263": "101263",   # ami 2
 }
 
 @app.route("/")
@@ -19,14 +19,15 @@ def index():
 @socketio.on("join")
 def on_join(data):
     pseudo = data.get("pseudo", "Anonyme")
-    password = data.get("room")  # ici, "room" = mot de passe
+    code = data.get("room")
 
-    if not password or password not in ROOMS:
+    # Vérifier que le code correspond à un salon autorisé
+    if not code or code not in ROOMS:
         return
 
-    room_name = ROOMS[password]
+    room_name = ROOMS[code]
     join_room(room_name)
-    send(f"{pseudo} a rejoint le salon {room_name}.", room=room_name)
+    send(f"{pseudo} a rejoint le salon.", room=room_name)
 
 @socketio.on("chat_message")
 def handle_chat_message(data):

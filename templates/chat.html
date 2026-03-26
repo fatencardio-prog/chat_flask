@@ -34,8 +34,7 @@
     const socket = io();
 
     let pseudo = "";
-    let roomPassword = "";
-    let roomName = "";
+    let roomCode = "";
 
     socket.on("message", (msg) => {
         const div = document.getElementById("messages");
@@ -47,23 +46,19 @@
 
     function joinRoom() {
         pseudo = document.getElementById("pseudo").value.trim() || "Anonyme";
-        roomPassword = document.getElementById("room").value.trim();
+        roomCode = document.getElementById("room").value.trim();
 
-        if (!roomPassword) {
+        if (!roomCode) {
             alert("Merci de renseigner un code d'accès (salon).");
             return;
         }
 
-        // on envoie le mot de passe au serveur
-        socket.emit("join", { pseudo: pseudo, room: roomPassword });
-
-        // on garde localement le nom de salon pour les messages
-        roomName = roomPassword; // on enverra le mot de passe, le serveur remappera
+        socket.emit("join", { pseudo: pseudo, room: roomCode });
 
         document.getElementById("login").style.display = "none";
         document.getElementById("chat").style.display = "block";
         document.getElementById("info").textContent =
-            "Connecté en tant que " + pseudo + " (code salon : " + roomPassword + ")";
+            "Connecté en tant que " + pseudo + " dans le salon (code) : " + roomCode;
     }
 
     function sendMessage() {
@@ -73,7 +68,7 @@
             const msg = pseudo + " : " + text;
             socket.emit("chat_message", {
                 msg: msg,
-                room: roomName
+                room: roomCode
             });
             input.value = "";
         }
