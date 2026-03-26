@@ -1,13 +1,10 @@
-from flask import Flask, render_template, session
+from flask import Flask, render_template
 from flask_socketio import SocketIO, send, join_room
-from flask_session import Session
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "secret!"
-app.config["SESSION_TYPE"] = "filesystem"
-Session(app)
 
-socketio = SocketIO(app, manage_session=False)
+socketio = SocketIO(app)
 
 # Salons autorisés : mot de passe -> nom du salon
 ROOMS = {
@@ -22,27 +19,20 @@ def index():
 @socketio.on("join")
 def on_join(data):
     pseudo = data.get("pseudo", "Anonyme")
-    password = data.get("room")  # ici on considère que "room" est le mot de passe
+    password = data.get("room")  # ici, "room" = mot de passe
 
-    # Vérifier que le mot de passe correspond à un salon autorisé
     if not password or password not in ROOMS:
-        # on pourrait envoyer un message d'erreur au client plus tard
         return
 
     room_name = ROOMS[password]
-
-    session["pseudo"] = pseudo
-    session["room"] = room_name
-
     join_room(room_name)
     send(f"{pseudo} a rejoint le salon {room_name}.", room=room_name)
 
-@socketio.on("message")
-def handle_message(msg):
-    print("MESSAGE RECU SUR LE SERVEUR:", msg)
-    room_name = session.get("room")
-    print("ROOM COURANTE:", room_name)
-    if not room_name:
+@socketio.on("chat_message")
+def handle_chat_message(data):
+    msg = data.get("msg")
+    room_name = data.get("room")
+    if not msg or not room_name:
         return
     send(msg, room=room_name)
 
