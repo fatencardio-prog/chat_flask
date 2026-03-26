@@ -2,53 +2,80 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Chat en ligne</title>
+    <title>Chat privé</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
-    <h2>Mini chat</h2>
-    <div id="messages" style="border:1px solid #ccc;height:300px;overflow:auto;margin-bottom:10px;"></div>
+    <h2>Chat privé</h2>
 
-    <input id="message" autocomplete="off" placeholder="Votre message">
-    <button onclick="sendMessage()">Envoyer</button>
+    <!-- Zone de connexion -->
+    <div id="login">
+        <label>Pseudo :</label>
+        <input id="pseudo" autocomplete="off"><br><br>
 
-<script>
-    const socket = io();
+        <label>Code d'accès (salon) :</label>
+        <input id="room" autocomplete="off" placeholder="ex: amiX ou amiY"><br><br>
 
-    let pseudo = "";
+        <button onclick="joinRoom()">Entrer</button>
+    </div>
 
-    // Demander un pseudo au chargement
-    window.addEventListener("load", () => {
-        pseudo = prompt("Entrez votre pseudo :") || "Anonyme";
-    });
+    <hr>
 
-    socket.on("connect", () => {
-        console.log("Connecté au serveur");
-    });
+    <!-- Zone de chat -->
+    <div id="chat" style="display:none;">
+        <div id="info"></div>
+        <div id="messages" style="border:1px solid #ccc;height:300px;overflow:auto;margin-bottom:10px;"></div>
 
-    socket.on("message", (msg) => {
-        const div = document.getElementById("messages");
-        const p = document.createElement("p");
-        p.textContent = msg;
-        div.appendChild(p);
-        div.scrollTop = div.scrollHeight;
-    });
+        <input id="message" autocomplete="off" placeholder="Votre message">
+        <button onclick="sendMessage()">Envoyer</button>
+    </div>
 
-    function sendMessage() {
-        const input = document.getElementById("message");
-        const text = input.value.trim();
-        if (text) {
-            const msg = pseudo + " : " + text;
-            socket.send(msg);
-            input.value = "";
+    <script>
+        const socket = io();
+
+        let pseudo = "";
+        let room = "";
+
+        socket.on("message", (msg) => {
+            const div = document.getElementById("messages");
+            const p = document.createElement("p");
+            p.textContent = msg;
+            div.appendChild(p);
+            div.scrollTop = div.scrollHeight;
+        });
+
+        function joinRoom() {
+            pseudo = document.getElementById("pseudo").value.trim() || "Anonyme";
+            room = document.getElementById("room").value.trim();
+
+            if (!room) {
+                alert("Merci de renseigner un code d'accès (salon).");
+                return;
+            }
+
+            socket.emit("join", { pseudo: pseudo, room: room });
+
+            document.getElementById("login").style.display = "none";
+            document.getElementById("chat").style.display = "block";
+            document.getElementById("info").textContent =
+                "Connecté en tant que " + pseudo + " dans le salon : " + room;
         }
-    }
 
-    document.getElementById("message").addEventListener("keyup", (e) => {
-        if (e.key === "Enter") {
-            sendMessage();
+        function sendMessage() {
+            const input = document.getElementById("message");
+            const text = input.value.trim();
+            if (text) {
+                const msg = pseudo + " : " + text;
+                socket.send(msg);
+                input.value = "";
+            }
         }
-    });
-</script>
+
+        document.getElementById("message").addEventListener("keyup", (e) => {
+            if (e.key === "Enter") {
+                sendMessage();
+            }
+        });
+    </script>
 </body>
 </html>
