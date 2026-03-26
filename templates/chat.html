@@ -4,9 +4,8 @@
     <meta charset="utf-8">
     <title>Chat privé</title>
 
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"
-            integrity="sha384-aFfAzlM8ql5zzctT1I3GfZt1Qq1Lrj2H9kU0heYdZ2VN3w9uQ2R5F1vJ9G8f3Zk"
-            crossorigin="anonymous"></script> <!-- [web:149] -->
+    <!-- Socket.IO depuis le CDN officiel, SANS integrity -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script> <!-- [web:201][web:203] -->
 
     <style>
         body {
@@ -64,8 +63,51 @@
     <button onclick="sendMessage()">Envoyer</button>
 </div>
 
-<script src="https://cdn.socket.io/4.8.3/socket.io.min.js"
-        integrity="sha384-kzavj5fiMwLKzzD1f8S7TeoVIEi7uKHvbTA3ueZkrzYq75pNQUiUi6Dy98Q3fxb0"
-        crossorigin="anonymous"></script>
+<script>
+    const socket = io();
+
+    let pseudo = "";
+    let roomCode = "";
+
+    socket.on("message", (msg) => {
+        const div = document.getElementById("messages");
+        const p = document.createElement("p");
+        p.textContent = msg;
+        div.appendChild(p);
+        div.scrollTop = div.scrollHeight;
+    });
+
+    function joinRoom() {
+        pseudo = document.getElementById("pseudo").value.trim() || "Anonyme";
+        roomCode = document.getElementById("room").value.trim();
+
+        if (!roomCode) {
+            alert("Merci de renseigner un code d'accès (salon).");
+            return;
+        }
+
+        socket.emit("join", { pseudo: pseudo, room: roomCode });
+
+        document.getElementById("login").style.display = "none";
+        document.getElementById("chat").style.display = "block";
+        document.getElementById("info").textContent =
+            "Connecté en tant que " + pseudo + " dans le salon (code) : " + roomCode;
+    }
+
+    function sendMessage() {
+        const input = document.getElementById("message");
+        const text = input.value.trim();
+        if (text) {
+            const msg = pseudo + " : " + text;
+            socket.emit("chat_message", {
+                msg: msg,
+                room: roomCode
+            });
+            input.value = "";
+            input.focus();
+        }
+    }
+</script>
+
 </body>
 </html>
